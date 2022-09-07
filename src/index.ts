@@ -170,9 +170,12 @@ function eq(a: string, b: string): string {
   return `${a} === ${b}`
 }
 
-function ne(a: string, b: string): string {
-  return `${a} !== ${b}`
-}
+// this code was frequently inlined, this is a bit of a hack to shorten the code output
+const isObjOrFuncStr = `function isObjOrFunc(obj: any): boolean {
+  return obj !== null &&
+    typeof obj === 'object' ||
+    typeof obj === 'function'
+}`;
 
 function typeOf(varName: string, type: string): string {
   return eq(`typeof ${varName}`, `"${type}"`)
@@ -295,10 +298,7 @@ function arrayCondition(
 function objectTypeCondition(varName: string, callable: boolean): string {
   return callable
     ? typeOf(varName, 'function')
-    : ors(
-        ands(ne(varName, 'null'), typeOf(varName, 'object')),
-        typeOf(varName, 'function')
-      )
+    : 'isObjOrFunc(obj)'
 }
 
 function objectCondition(
@@ -1060,7 +1060,9 @@ export function processProject(
     const dependencies: Dependencies = new Map()
     const addDependency = createAddDependency(dependencies)
 
-    const functions = []
+    // always including this is hacky
+    const functions = [isObjOrFuncStr]
+
     const exports = Array.from(sourceFile.getExportedDeclarations().values())
     const allTypesDeclarations: Guardable[] = []
     for (const exp of exports) {
